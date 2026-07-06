@@ -359,6 +359,53 @@
             </div>
         </section>
 
+        <section class="mb-5">
+            <div class="row g-3">
+                <div class="col-lg-6 fade-in fade-in-d4">
+                    <div class="glass-card p-4 h-100">
+                        <div class="section-title">Your Location</div>
+                        <div id="geo-info">
+                            <div class="system-info-row">
+                                <span class="system-info-key">IP</span>
+                                <span class="system-info-val" id="geo-ip">--</span>
+                            </div>
+                            <div class="system-info-row">
+                                <span class="system-info-key">Country</span>
+                                <span class="system-info-val" id="geo-country">--</span>
+                            </div>
+                            <div class="system-info-row">
+                                <span class="system-info-key">City</span>
+                                <span class="system-info-val" id="geo-city">--</span>
+                            </div>
+                            <div class="system-info-row">
+                                <span class="system-info-key">ISP</span>
+                                <span class="system-info-val" id="geo-isp">--</span>
+                            </div>
+                            <div class="system-info-row">
+                                <span class="system-info-key">Coordinates</span>
+                                <span class="system-info-val" id="geo-coords">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 fade-in fade-in-d5">
+                    <div class="glass-card p-4 h-100">
+                        <div class="section-title">Health Pinger</div>
+                        <div id="pings-info">
+                            <div class="system-info-row">
+                                <span class="system-info-key">Total Pings</span>
+                                <span class="system-info-val" id="ping-count">--</span>
+                            </div>
+                            <div id="ping-list">
+                                <div class="loading-skeleton mb-2" style="width: 100%;"></div>
+                                <div class="loading-skeleton mb-2" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <footer class="py-4" style="background: transparent;">
@@ -376,6 +423,8 @@
     <script>
         const STATUS = {{ status | tojson }};
         const INFO = {{ info | tojson }};
+        const GEO = {{ geo | tojson }};
+        const PINGS = {{ pings | tojson }};
 
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
@@ -454,8 +503,37 @@
             `;
         }
 
+        function renderGeo(data) {
+            document.getElementById('geo-ip').textContent = data.ip || '--';
+            document.getElementById('geo-country').textContent = data.country || '--';
+            document.getElementById('geo-city').textContent = data.city || '--';
+            document.getElementById('geo-isp').textContent = data.isp || '--';
+            document.getElementById('geo-coords').textContent =
+                (data.lat && data.lon) ? `${data.lat}, ${data.lon}` : '--';
+        }
+
+        function renderPings(data) {
+            document.getElementById('ping-count').textContent = data.length;
+            const list = document.getElementById('ping-list');
+            if (data.length === 0) {
+                list.innerHTML = '<div class="system-info-row"><span class="system-info-key" style="color:var(--text-muted);">No pings yet</span></div>';
+                return;
+            }
+            const recent = data.slice(-5).reverse();
+            list.innerHTML = recent.map(p => `
+                <div class="system-info-row">
+                    <span class="system-info-key">${new Date(p.timestamp).toLocaleTimeString()}</span>
+                    <span class="system-info-val" style="color: ${p.ok ? 'var(--accent)' : '#ef5350'}">
+                        ${p.ok ? p.status_code : 'FAIL'}${p.latency_ms ? ' · ' + p.latency_ms + 'ms' : ''}
+                    </span>
+                </div>
+            `).join('');
+        }
+
         renderStatus(STATUS);
         renderInfo(INFO);
+        renderGeo(GEO);
+        renderPings(PINGS);
     </script>
 </body>
 </html>

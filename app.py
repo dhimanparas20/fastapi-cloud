@@ -73,9 +73,14 @@ async def root(request: Request):
     logger.info("GET / — rendering dashboard")
     status = get_full_status()
     info = get_app_info()
+    ip = await get_client_ip(request)
+    geo = await get_geolocation(ip)
+    pings = get_ping_history()
     return templates.TemplateResponse(request, "index.html", {
         "status": status,
         "info": info,
+        "geo": geo,
+        "pings": pings,
     })
 
 
