@@ -21,7 +21,10 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 
 ```
 .
-├── app.py           # FastAPI application (entrypoint)
+├── app.py           # FastAPI routes (entrypoint)
+├── modules/
+│   ├── __init__.py  # Exports utility functions
+│   └── utils.py     # System info, env vars, CPU/RAM/disk/network helpers
 ├── templates/
 │   └── index.html   # Dashboard UI (dark glassmorphism theme)
 ├── pyproject.toml   # Project config and dependencies
@@ -29,6 +32,18 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 ├── .env             # Local environment variables (gitignored)
 ├── .env.sample      # Env var template (tracked in git)
 └── README.md
+```
+
+## Architecture
+
+- **`app.py`** — Routes only. Clean and minimal, delegates logic to `modules`.
+- **`modules/utils.py`** — All business logic: env var reading, system metrics collection.
+- **`modules/__init__.py`** — Re-exports all functions via `__all__` for clean imports.
+- **`templates/index.html`** — Dashboard UI rendered at `/`.
+
+```python
+# Import from modules directly
+from modules import get_app_info, get_full_status
 ```
 
 ## Local Development
