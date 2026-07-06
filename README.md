@@ -10,7 +10,7 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 
 | Method | Path      | Description              |
 |--------|-----------|--------------------------|
-| GET    | `/`       | Returns a welcome message |
+| GET    | `/`       | Returns welcome message + social links from env vars |
 | GET    | `/health` | Health check endpoint     |
 | GET    | `/docs`   | Auto-generated Swagger UI |
 | GET    | `/redoc`  | ReDoc API documentation   |
@@ -22,6 +22,8 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 ├── app.py           # FastAPI application (entrypoint)
 ├── pyproject.toml   # Project config and dependencies
 ├── .python-version  # Pinned Python version
+├── .env             # Local environment variables (gitignored)
+├── .env.sample      # Env var template (tracked in git)
 └── README.md
 ```
 
@@ -49,6 +51,45 @@ uv run python app.py
 ```bash
 uv add <package-name>
 ```
+
+## Environment Variables
+
+This app uses a `.env` file to load environment variables at runtime.
+
+### Local Setup
+
+1. Copy the sample file:
+   ```bash
+   cp .env.sample .env
+   ```
+
+2. Fill in your values in `.env`:
+   ```
+   GITHUB_URL=https://github.com/your-username
+   LINKEDIN_URL=https://www.linkedin.com/in/your-username/
+   ```
+
+3. The app reads these with `os.getenv()` and falls back to defaults if missing.
+
+### Cloud Setup
+
+Set the same env vars on FastAPI Cloud so they're available in production:
+
+```bash
+# Via CLI
+uv run fastapi cloud env set GITHUB_URL "https://github.com/dhimanparas20"
+uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanparas20/"
+
+# List current env vars
+uv run fastapi cloud env list
+
+# Delete an env var
+uv run fastapi cloud env delete GITHUB_URL
+```
+
+Or manage them in the [dashboard](https://dashboard.fastapicloud.com) with bulk `.env` import.
+
+> **Note:** `.env` is gitignored. `.env.sample` is tracked so others know which variables are needed.
 
 ---
 
