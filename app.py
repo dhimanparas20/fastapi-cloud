@@ -1,7 +1,11 @@
 import logging
+import os
 
 from fastapi import FastAPI
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,7 +26,11 @@ app = FastAPI(
 @app.get("/")
 async def root():
     logger.info("GET / — returning welcome message")
-    return {"message": "Hello World"}
+    return {
+        "message": "Hello World",
+        "github": os.getenv("GITHUB_URL", "https://github.com"),
+        "linkedin": os.getenv("LINKEDIN_URL", "https://www.linkedin.com"),
+    }
 
 
 @app.get("/health")
