@@ -10,17 +10,20 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 
 | Method | Path      | Description              |
 |--------|-----------|--------------------------|
-| GET    | `/`       | Returns welcome message + social links from env vars |
-| GET    | `/health` | Health check endpoint                                |
-| GET    | `/status` | System specs: CPU, RAM, disk, network, uptime        |
-| GET    | `/docs`   | Auto-generated Swagger UI                            |
-| GET    | `/redoc`  | ReDoc API documentation                              |
+| GET    | `/`       | Dashboard — live system monitor with glassmorphism UI |
+| GET    | `/info`   | App info — GitHub & LinkedIn links from env vars      |
+| GET    | `/status` | System specs: CPU, RAM, disk, network, uptime         |
+| GET    | `/health` | Health check endpoint                                 |
+| GET    | `/docs`   | Auto-generated Swagger UI                             |
+| GET    | `/redoc`  | ReDoc API documentation                               |
 
 ## Project Structure
 
 ```
 .
 ├── app.py           # FastAPI application (entrypoint)
+├── templates/
+│   └── index.html   # Dashboard UI (dark glassmorphism theme)
 ├── pyproject.toml   # Project config and dependencies
 ├── .python-version  # Pinned Python version
 ├── .env             # Local environment variables (gitignored)

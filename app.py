@@ -2,10 +2,14 @@ import logging
 import os
 import platform
 from datetime import datetime, timezone
+from pathlib import Path
 
 import psutil
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 import uvicorn
 
 load_dotenv()
@@ -25,15 +29,29 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
-@app.get("/")
-async def root():
-    logger.info("GET / — returning welcome message")
+
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    logger.info("GET / — rendering dashboard")
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/info")
+async def info():
+    logger.info("GET /info — returning app info")
     return {
         "message": "Hello World",
         "github": os.getenv("GITHUB_URL", "https://github.com"),
         "linkedin": os.getenv("LINKEDIN_URL", "https://www.linkedin.com"),
     }
+
+
+@app.get("/health")
+async def health():
+    logger.info("GET /health — health check passed")
+    return {"status": "ok"}
 
 
 @app.get("/status")
