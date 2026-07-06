@@ -1,49 +1,54 @@
 # FastAPI Cloud App
 
-A starter FastAPI project deployed on [FastAPI Cloud](https://fastapicloud.com).
+A production-ready FastAPI application deployed on [FastAPI Cloud](https://fastapicloud.com) with system monitoring, API key auth, rate limiting, geolocation, and a live dashboard.
 
-## What is this?
+## Features
 
-This repo is a simple, production-ready FastAPI application set up for one-command deployment to FastAPI Cloud. It uses [uv](https://docs.astral.sh/uv/) as the package manager.
+- **Live Dashboard** — glassmorphism UI with real-time system stats (CPU, RAM, disk, network)
+- **API Key Auth** — protected endpoints require `X-API-Key` header
+- **Rate Limiting** — 60 req/min per IP (configurable per route)
+- **Request Counter** — middleware tracks total requests per endpoint
+- **IP Geolocation** — lookup visitor location via ip-api.com
+- **Health Pinger** — background task pings a URL on a cron schedule
+- **OpenAPI Customization** — custom schema with tags, descriptions, contact info
 
 ## Endpoints
 
-| Method | Path      | Description              |
-|--------|-----------|--------------------------|
-| GET    | `/`       | Dashboard — live system monitor with glassmorphism UI |
-| GET    | `/info`   | App info — GitHub & LinkedIn links from env vars      |
-| GET    | `/status` | System specs: CPU, RAM, disk, network, uptime         |
-| GET    | `/health` | Health check endpoint                                 |
-| GET    | `/docs`   | Auto-generated Swagger UI                             |
-| GET    | `/redoc`  | ReDoc API documentation                               |
+| Method | Path       | Auth | Description                                    |
+|--------|------------|------|------------------------------------------------|
+| GET    | `/`        | No   | Live dashboard (server-rendered)               |
+| GET    | `/health`  | No   | Health check                                   |
+| GET    | `/status`  | Yes  | System specs: CPU, RAM, disk, network, uptime  |
+| GET    | `/info`    | Yes  | App info: GitHub & LinkedIn links              |
+| GET    | `/metrics` | Yes  | Request stats: total count, per-endpoint       |
+| GET    | `/geo`     | Yes  | IP geolocation of the requester                |
+| GET    | `/pings`   | Yes  | Health pinger history                          |
+| GET    | `/docs`    | No   | Swagger UI                                     |
+| GET    | `/redoc`   | No   | ReDoc                                          |
+
+> **Auth:** Pass `X-API-Key: <your-key>` header for protected endpoints.
 
 ## Project Structure
 
 ```
 .
-├── app.py           # FastAPI routes (entrypoint)
+├── app.py                # FastAPI routes only
 ├── modules/
-│   ├── __init__.py  # Exports utility functions
-│   └── utils.py     # System info, env vars, CPU/RAM/disk/network helpers
+│   ├── __init__.py       # Re-exports all module functions
+│   ├── utils.py          # System info, env vars, CPU/RAM/disk/network
+│   ├── auth.py           # API key dependency
+│   ├── geo.py            # IP geolocation lookup
+│   ├── middleware.py      # Request counter middleware
+│   ├── rate_limit.py      # Slowapi rate limiter
+│   ├── health_pinger.py   # Background cron health pinger
+│   └── openapi.py         # Custom OpenAPI schema
 ├── templates/
-│   └── index.html   # Dashboard UI (dark glassmorphism theme)
-├── pyproject.toml   # Project config and dependencies
-├── .python-version  # Pinned Python version
-├── .env             # Local environment variables (gitignored)
-├── .env.sample      # Env var template (tracked in git)
+│   └── index.html        # Dashboard UI (dark glassmorphism)
+├── pyproject.toml
+├── .python-version
+├── .env                  # Local env vars (gitignored)
+├── .env.sample           # Env template (tracked)
 └── README.md
-```
-
-## Architecture
-
-- **`app.py`** — Routes only. Clean and minimal, delegates logic to `modules`.
-- **`modules/utils.py`** — All business logic: env var reading, system metrics collection.
-- **`modules/__init__.py`** — Re-exports all functions via `__all__` for clean imports.
-- **`templates/index.html`** — Dashboard UI rendered at `/`.
-
-```python
-# Import from modules directly
-from modules import get_app_info, get_full_status
 ```
 
 ## Local Development
@@ -54,61 +59,64 @@ from modules import get_app_info, get_full_status
 # Install dependencies
 uv sync
 
-# Run the dev server (auto-reloads on changes)
-uv run fastapi dev
+# Set up env vars
+cp .env.sample .env
+# Edit .env with your values
 
-# Or run directly
+# Run the dev server
 uv run python app.py
 
 # App runs at http://0.0.0.0:8000
+# Dashboard at http://0.0.0.0:8000
 # Swagger docs at http://0.0.0.0:8000/docs
-# ReDoc at http://0.0.0.0:8000/redoc
-```
-
-## Adding Dependencies
-
-```bash
-uv add <package-name>
 ```
 
 ## Environment Variables
 
-This app uses a `.env` file to load environment variables at runtime.
+| Variable          | Required | Default              | Description                          |
+|-------------------|----------|----------------------|--------------------------------------|
+| `GITHUB_URL`      | No       | `https://github.com` | GitHub profile link                  |
+| `LINKEDIN_URL`    | No       | `https://linkedin.com` | LinkedIn profile link              |
+| `API_KEY`         | No       | —                    | API key for protected endpoints      |
+| `PINGER_URL`      | No       | —                    | URL for health pinger to ping        |
+| `PINGER_INTERVAL` | No       | `300`                | Pinger interval in seconds           |
 
 ### Local Setup
 
-1. Copy the sample file:
-   ```bash
-   cp .env.sample .env
-   ```
-
-2. Fill in your values in `.env`:
-   ```
-   GITHUB_URL=https://github.com/your-username
-   LINKEDIN_URL=https://www.linkedin.com/in/your-username/
-   ```
-
-3. The app reads these with `os.getenv()` and falls back to defaults if missing.
+```bash
+cp .env.sample .env
+# Fill in your values
+```
 
 ### Cloud Setup
 
-Set the same env vars on FastAPI Cloud so they're available in production:
-
 ```bash
-# Via CLI
+uv run fastapi cloud env set API_KEY "your-secret-key"
 uv run fastapi cloud env set GITHUB_URL "https://github.com/dhimanparas20"
 uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanparas20/"
-
-# List current env vars
-uv run fastapi cloud env list
-
-# Delete an env var
-uv run fastapi cloud env delete GITHUB_URL
+uv run fastapi cloud env set PINGER_URL "https://your-app.fastapicloud.dev/health"
 ```
 
-Or manage them in the [dashboard](https://dashboard.fastapicloud.com) with bulk `.env` import.
-
 > **Note:** `.env` is gitignored. `.env.sample` is tracked so others know which variables are needed.
+
+## Using Protected Endpoints
+
+```bash
+# Without API key — 401
+curl http://0.0.0.0:8000/status
+
+# With API key — 200
+curl -H "X-API-Key: test123" http://0.0.0.0:8000/status
+
+# Geolocation
+curl -H "X-API-Key: test123" http://0.0.0.0:8000/geo
+
+# Request metrics
+curl -H "X-API-Key: test123" http://0.0.0.0:8000/metrics
+
+# Ping history
+curl -H "X-API-Key: test123" http://0.0.0.0:8000/pings
+```
 
 ---
 
@@ -120,32 +128,22 @@ Or manage them in the [dashboard](https://dashboard.fastapicloud.com) with bulk 
 uv run fastapi login
 ```
 
-Opens your browser to authenticate. Create an account if you don't have one.
-
 ### Step 2: Deploy
 
 ```bash
 uv run fastapi deploy
 ```
 
-The CLI will:
-1. Prompt you to select or create a **team**
-2. Ask you to **choose an app name** — this becomes your URL
-3. Package and upload your code
-4. Build and deploy with zero downtime
+Pick an app name — it becomes `https://<name>.fastapicloud.dev`.
 
-Your app will be live at:
+### Step 3: Set Environment Variables
 
+```bash
+uv run fastapi cloud env set API_KEY "your-production-key"
+uv run fastapi cloud env set GITHUB_URL "https://github.com/dhimanparas20"
+uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanparas20/"
+uv run fastapi cloud env set PINGER_URL "https://<name>.fastapicloud.dev/health"
 ```
-https://<your-app-name>.fastapicloud.dev
-```
-
-> **Naming rules:** Use lowercase letters, numbers, and hyphens only. No spaces or special characters.
-> Examples: `my-app`, `todo-api-v2`, `coolproject`
-
-### Step 3: Done
-
-Visit `https://<your-app-name>.fastapicloud.dev/docs` to explore your live API.
 
 ---
 
@@ -156,109 +154,53 @@ All commands use `uv run fastapi <command>`.
 ### Authentication
 
 ```bash
-# Login to FastAPI Cloud
 uv run fastapi login
-
-# Check who you're logged in as
 uv run fastapi whoami
-
-# Logout
 uv run fastapi logout
 ```
 
 ### Deploy
 
 ```bash
-# Deploy current directory
 uv run fastapi deploy
-
-# Deploy a specific path
-uv run fastapi deploy ./my-app
-
-# Deploy without waiting for completion (CI/CD)
 uv run fastapi deploy --no-wait
-
-# Deploy to a specific app by ID
-uv run fastapi deploy --app-id <app-id>
 ```
-
-After the first deploy, a `.fastapicloud` directory is created that links your local project to the cloud app. Subsequent deploys just need `uv run fastapi deploy`.
 
 ### Environment Variables
 
 ```bash
-# List all env vars
 uv run fastapi cloud env list
-
-# Set an env var (applies on next deploy)
-uv run fastapi cloud env set API_KEY "your-key"
-
-# Set a secret (encrypted, hidden in dashboard)
-uv run fastapi cloud env set --secret DATABASE_URL "postgresql://..."
-
-# Delete an env var
-uv run fastapi cloud env delete API_KEY
-
-# Interactive mode (prompts for name and value)
-uv run fastapi cloud env set
+uv run fastapi cloud env set KEY "value"
+uv run fastapi cloud env set --secret KEY "value"
+uv run fastapi cloud env delete KEY
 ```
-
-> **Note:** Setting env vars via CLI does NOT auto-redeploy. Changes take effect on the next deployment.
-> You can also manage env vars in the [dashboard](https://dashboard.fastapicloud.com) with bulk `.env` import and instant redeploy.
 
 ### Logs
 
 ```bash
-# Stream logs in real-time
 uv run fastapi cloud logs
-
-# Fetch recent logs and exit
 uv run fastapi cloud logs --no-follow
-
-# Show last 50 lines
 uv run fastapi cloud logs --tail 50
-
-# Logs from the last hour
 uv run fastapi cloud logs --since 1h
-
-# Time formats: 30s, 5m, 1h, 2d
 ```
 
 ### Project Linking
 
 ```bash
-# Link local dir to an existing cloud app
 uv run fastapi cloud link
-
-# Remove the local link
 uv run fastapi cloud unlink
 ```
 
 ### CI/CD (GitHub Actions)
 
 ```bash
-# Auto-configure GitHub Actions for auto-deploy on push
 uv run fastapi cloud setup-ci
-
-# Target a specific branch (default: main)
 uv run fastapi cloud setup-ci --branch production
-
-# Preview without making changes
-uv run fastapi cloud setup-ci --dry-run
 ```
-
-This creates a GitHub Actions workflow that auto-deploys on push. It sets `FASTAPI_CLOUD_TOKEN` and `FASTAPI_CLOUD_APP_ID` as GitHub repo secrets automatically (requires `gh` CLI).
 
 ### Custom Domains
 
-Custom domains are managed in the [dashboard](https://dashboard.fastapicloud.com):
-
-1. Go to your app → **Domains** → **Add Custom Domain**
-2. Enter your domain (e.g. `api.yourdomain.com`)
-3. Add the DNS records shown (CNAME for subdomains, A records for apex)
-4. TLS certificates are issued automatically
-
-Your app stays accessible at `https://<name>.fastapicloud.dev` even with a custom domain.
+Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → Domains.
 
 ---
 
@@ -268,3 +210,4 @@ Your app stays accessible at `https://<name>.fastapicloud.dev` even with a custo
 - [FastAPI Cloud Dashboard](https://dashboard.fastapicloud.com)
 - [FastAPI Docs](https://fastapi.tiangolo.com)
 - [uv Docs](https://docs.astral.sh/uv)
+- [slowapi Docs](https://github.com/laurentS/slowapi)
