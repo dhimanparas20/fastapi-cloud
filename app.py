@@ -16,7 +16,7 @@ from modules import (
     get_geolocation,
     get_ping_history,
     get_request_stats,
-    health_pinger_task,
+    start_pinger,
     limiter,
     require_api_key,
 )
@@ -60,10 +60,8 @@ app.openapi_tags = TAGS_METADATA
 # --- Lifecycle ---
 @app.on_event("startup")
 async def startup():
-    logger.info("Application starting — launching health pinger background task")
-    import asyncio
-
-    asyncio.create_task(health_pinger_task())
+    logger.info("Application starting — launching health pinger")
+    start_pinger()
 
 
 # --- Routes: Public ---

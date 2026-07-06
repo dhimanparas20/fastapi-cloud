@@ -72,7 +72,7 @@ The dashboard is public (no API key needed). Data is injected server-side via Ji
 - **`modules/geo.py`** — Async IP geolocation via `ip-api.com`.
 - **`modules/middleware.py`** — `RequestCounterMiddleware` — counts requests, logs timing.
 - **`modules/rate_limit.py`** — Slowapi rate limiter instance.
-- **`modules/health_pinger.py`** — Background task pings a URL on a cron schedule.
+- **`modules/health_pinger.py`** — APScheduler job pings a URL on a cron interval, stores history.
 - **`modules/openapi.py`** — Custom OpenAPI schema with tags, descriptions, contact info.
 - **`modules/__init__.py`** — Re-exports all public functions via `__all__`.
 
@@ -243,6 +243,7 @@ Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → 
 | `httpx` | Async HTTP client (geolocation + pinger) |
 | `python-dotenv` | Load `.env` files |
 | `jinja2` | HTML template rendering |
+| `apscheduler` | Cron-style health pinger scheduler |
 
 ## Useful Links
 
