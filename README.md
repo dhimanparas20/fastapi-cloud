@@ -4,7 +4,7 @@ A production-ready FastAPI application deployed on [FastAPI Cloud](https://fasta
 
 ## Features
 
-- **Live Dashboard** — glassmorphism UI with real-time system stats (CPU, RAM, disk, network)
+- **Live Dashboard** — glassmorphism UI with system stats (CPU, RAM, disk, network), visitor geolocation, health pinger history, and social links
 - **API Key Auth** — protected endpoints require `X-API-Key` header
 - **Rate Limiting** — 60 req/min per IP (configurable per route)
 - **Request Counter** — middleware tracks total requests per endpoint
@@ -28,6 +28,19 @@ A production-ready FastAPI application deployed on [FastAPI Cloud](https://fasta
 
 > **Auth:** Pass `X-API-Key: <your-key>` header for protected endpoints.
 
+## Dashboard
+
+The `/` route renders a server-side dashboard showing:
+
+- **System metrics** — CPU, memory, disk usage with progress bars
+- **System info** — OS, architecture, hostname, Python version, CPU frequency
+- **Network I/O** — bytes and packets sent/received
+- **Visitor geolocation** — your IP, country, city, ISP, coordinates
+- **Health pinger** — last 5 pings with status codes and latency
+- **Social links** — GitHub & LinkedIn from env vars
+
+The dashboard is public (no API key needed). Data is injected server-side via Jinja2 — no client-side API calls required.
+
 ## Project Structure
 
 ```
@@ -49,6 +62,22 @@ A production-ready FastAPI application deployed on [FastAPI Cloud](https://fasta
 ├── .env                  # Local env vars (gitignored)
 ├── .env.sample           # Env template (tracked)
 └── README.md
+```
+
+## Architecture
+
+- **`app.py`** — Routes only. Imports functions from `modules`, wires middleware, starts background tasks.
+- **`modules/utils.py`** — System info, env vars, CPU/RAM/disk/network helpers.
+- **`modules/auth.py`** — API key dependency (`X-API-Key` header).
+- **`modules/geo.py`** — Async IP geolocation via `ip-api.com`.
+- **`modules/middleware.py`** — `RequestCounterMiddleware` — counts requests, logs timing.
+- **`modules/rate_limit.py`** — Slowapi rate limiter instance.
+- **`modules/health_pinger.py`** — Background task pings a URL on a cron schedule.
+- **`modules/openapi.py`** — Custom OpenAPI schema with tags, descriptions, contact info.
+- **`modules/__init__.py`** — Re-exports all public functions via `__all__`.
+
+```python
+from modules import get_app_info, get_full_status
 ```
 
 ## Local Development
@@ -203,6 +232,17 @@ uv run fastapi cloud setup-ci --branch production
 Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → Domains.
 
 ---
+
+## Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `fastapi[standard]` | Web framework + CLI + uvicorn |
+| `psutil` | System metrics (CPU, RAM, disk, network) |
+| `slowapi` | Rate limiting middleware |
+| `httpx` | Async HTTP client (geolocation + pinger) |
+| `python-dotenv` | Load `.env` files |
+| `jinja2` | HTML template rendering |
 
 ## Useful Links
 
