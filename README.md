@@ -11,9 +11,10 @@ This repo is a simple, production-ready FastAPI application set up for one-comma
 | Method | Path      | Description              |
 |--------|-----------|--------------------------|
 | GET    | `/`       | Returns welcome message + social links from env vars |
-| GET    | `/health` | Health check endpoint     |
-| GET    | `/docs`   | Auto-generated Swagger UI |
-| GET    | `/redoc`  | ReDoc API documentation   |
+| GET    | `/health` | Health check endpoint                                |
+| GET    | `/status` | System specs: CPU, RAM, disk, network, uptime        |
+| GET    | `/docs`   | Auto-generated Swagger UI                            |
+| GET    | `/redoc`  | ReDoc API documentation                              |
 
 ## Project Structure
 
