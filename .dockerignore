@@ -1,0 +1,7 @@
+.venv/
+.git/
+.idea/
+.fastapicloud/
+__pycache__/
+*.pyc
+.env

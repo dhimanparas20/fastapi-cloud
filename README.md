@@ -53,10 +53,13 @@ The dashboard is public (no API key needed). Data is injected server-side via Ji
 │   ├── geo.py            # IP geolocation lookup
 │   ├── middleware.py      # Request counter middleware
 │   ├── rate_limit.py      # Slowapi rate limiter
-│   ├── health_pinger.py   # Background cron health pinger
+│   ├── health_pinger.py   # APScheduler health pinger
 │   └── openapi.py         # Custom OpenAPI schema
 ├── templates/
 │   └── index.html        # Dashboard UI (dark glassmorphism)
+├── Dockerfile            # Container image definition
+├── compose.yml           # Docker Compose config
+├── .dockerignore         # Docker build exclusions
 ├── pyproject.toml
 ├── .python-version
 ├── .env                  # Local env vars (gitignored)
@@ -244,6 +247,25 @@ Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → 
 | `python-dotenv` | Load `.env` files |
 | `jinja2` | HTML template rendering |
 | `apscheduler` | Cron-style health pinger scheduler |
+
+## Docker
+
+### Build and run
+
+```bash
+docker build -t fastapi-cloud .
+docker run -p 8000:8000 --env-file .env fastapi-cloud
+```
+
+### Docker Compose
+
+```bash
+docker compose up -d      # start in background
+docker compose logs -f    # view logs
+docker compose down       # stop
+```
+
+App runs at `http://0.0.0.0:8000`. Environment variables are loaded from `.env`.
 
 ## Useful Links
 
