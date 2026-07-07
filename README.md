@@ -1,11 +1,18 @@
 # FastAPI Cloud App
 
-A production-ready FastAPI application deployed on [FastAPI Cloud](https://fastapicloud.com) with system monitoring, API key auth, rate limiting, geolocation, and a live dashboard.
+A production-ready FastAPI application with system monitoring, API key auth, rate limiting, geolocation, and a live dashboard.
+
+## Live Deployments
+
+| Platform | URL |
+|----------|-----|
+| FastAPI Cloud | https://mst-fastapi-cloud-f92a3a85.fastapicloud.dev/ |
+| Vercel (Docker) | https://fastapi-cloud.vercel.app/ |
 
 ## Features
 
-- **Live Dashboard** — glassmorphism UI with system stats, visitor geolocation, and social links
-- **API Key Auth** — protected endpoints require `X-API-Key` header
+- **Live Dashboard** — glassmorphism UI with lazy-loaded system stats, visitor geolocation, and social links
+- **API Key Auth** — all `/api/*` endpoints require `X-API-Key` header
 - **Rate Limiting** — 60 req/min per IP (configurable per route)
 - **Request Counter** — middleware tracks total requests per endpoint
 - **IP Geolocation** — lookup visitor location via ip-api.com
@@ -13,30 +20,30 @@ A production-ready FastAPI application deployed on [FastAPI Cloud](https://fasta
 
 ## Endpoints
 
-| Method | Path       | Auth | Description                                    |
-|--------|------------|------|------------------------------------------------|
-| GET    | `/`        | No   | Live dashboard (server-rendered)               |
-| GET    | `/health`  | No   | Health check                                   |
-| GET    | `/status`  | Yes  | System specs: CPU, RAM, disk, network, uptime  |
-| GET    | `/info`    | Yes  | App info: GitHub & LinkedIn links              |
-| GET    | `/metrics` | Yes  | Request stats: total count, per-endpoint       |
-| GET    | `/geo`     | Yes  | IP geolocation of the requester                |
-| GET    | `/docs`    | No   | Swagger UI                                     |
-| GET    | `/redoc`   | No   | ReDoc                                          |
+| Method | Path           | Auth | Description                                    |
+|--------|----------------|------|------------------------------------------------|
+| GET    | `/`            | No   | Live dashboard (lazy-loads data via JS)        |
+| GET    | `/health`      | No   | Health check                                   |
+| GET    | `/api/status`  | Yes  | System specs: CPU, RAM, disk, network, uptime  |
+| GET    | `/api/info`    | Yes  | App info: GitHub & LinkedIn links              |
+| GET    | `/api/geo`     | Yes  | IP geolocation of the requester                |
+| GET    | `/api/metrics` | Yes  | Request stats: total count, per-endpoint       |
+| GET    | `/docs`        | No   | Swagger UI                                     |
+| GET    | `/redoc`       | No   | ReDoc                                          |
 
 > **Auth:** Pass `X-API-Key: <your-key>` header for protected endpoints.
+> The dashboard automatically receives the API key from the backend and uses it for lazy-loading.
 
 ## Dashboard
 
-The `/` route renders a server-side dashboard showing:
+The `/` route renders a fully client-side dashboard:
 
-- **System metrics** — CPU, memory, disk usage with progress bars
-- **System info** — OS, architecture, hostname, Python version, CPU frequency
-- **Network I/O** — bytes and packets sent/received
-- **Visitor geolocation** — your IP, country, city, ISP, coordinates
-- **Social links** — GitHub & LinkedIn from env vars
+1. Page loads instantly with **spinner placeholders** in all sections
+2. Three parallel `fetch()` calls fire to `/api/status`, `/api/info`, `/api/geo`
+3. Each section fills in as its data arrives
+4. If a request fails, shows "Failed to load" gracefully
 
-The dashboard is public (no API key needed). Data is injected server-side via Jinja2 — no client-side API calls required.
+Sections: system metrics, system info, network I/O, visitor geolocation, social links.
 
 ## Project Structure
 
@@ -53,7 +60,8 @@ The dashboard is public (no API key needed). Data is injected server-side via Ji
 │   └── openapi.py         # Custom OpenAPI schema
 ├── templates/
 │   └── index.html        # Dashboard UI (dark glassmorphism)
-├── Dockerfile            # Container image definition
+├── Dockerfile            # FastAPI Cloud container image
+├── Dockerfile.vercel     # Vercel container image
 ├── compose.yml           # Docker Compose config
 ├── .dockerignore         # Docker build exclusions
 ├── pyproject.toml
@@ -65,7 +73,7 @@ The dashboard is public (no API key needed). Data is injected server-side via Ji
 
 ## Architecture
 
-- **`app.py`** — Routes only. Imports functions from `modules`, wires middleware.
+- **`app.py`** — Routes only. Passes API key to template, wires middleware.
 - **`modules/utils.py`** — System info, env vars, CPU/RAM/disk/network helpers.
 - **`modules/auth.py`** — API key dependency (`X-API-Key` header).
 - **`modules/geo.py`** — Async IP geolocation via `ip-api.com`.
@@ -73,10 +81,6 @@ The dashboard is public (no API key needed). Data is injected server-side via Ji
 - **`modules/rate_limit.py`** — Slowapi rate limiter instance.
 - **`modules/openapi.py`** — Custom OpenAPI schema with tags, descriptions, contact info.
 - **`modules/__init__.py`** — Re-exports all public functions via `__all__`.
-
-```python
-from modules import get_app_info, get_full_status
-```
 
 ## Local Development
 
@@ -116,9 +120,12 @@ cp .env.sample .env
 ### Cloud Setup
 
 ```bash
+# FastAPI Cloud
 uv run fastapi cloud env set API_KEY "your-secret-key"
 uv run fastapi cloud env set GITHUB_URL "https://github.com/dhimanparas20"
 uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanparas20/"
+
+# Vercel — set env vars in the Vercel dashboard
 ```
 
 > **Note:** `.env` is gitignored. `.env.sample` is tracked so others know which variables are needed.
@@ -127,43 +134,48 @@ uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanpar
 
 ```bash
 # Without API key — 401
-curl http://0.0.0.0:8000/status
+curl https://mst-fastapi-cloud-f92a3a85.fastapicloud.dev/api/status
 
 # With API key — 200
-curl -H "X-API-Key: test123" http://0.0.0.0:8000/status
+curl -H "X-API-Key: your-key" https://mst-fastapi-cloud-f92a3a85.fastapicloud.dev/api/status
 
 # Geolocation
-curl -H "X-API-Key: test123" http://0.0.0.0:8000/geo
+curl -H "X-API-Key: your-key" https://mst-fastapi-cloud-f92a3a85.fastapicloud.dev/api/geo
 
 # Request metrics
-curl -H "X-API-Key: test123" http://0.0.0.0:8000/metrics
+curl -H "X-API-Key: your-key" https://mst-fastapi-cloud-f92a3a85.fastapicloud.dev/api/metrics
 ```
 
 ---
 
 ## Deploy to FastAPI Cloud
 
-### Step 1: Login
-
 ```bash
 uv run fastapi login
-```
-
-### Step 2: Deploy
-
-```bash
 uv run fastapi deploy
 ```
 
 Pick an app name — it becomes `https://<name>.fastapicloud.dev`.
 
-### Step 3: Set Environment Variables
+### Set Environment Variables
 
 ```bash
 uv run fastapi cloud env set API_KEY "your-production-key"
 uv run fastapi cloud env set GITHUB_URL "https://github.com/dhimanparas20"
 uv run fastapi cloud env set LINKEDIN_URL "https://www.linkedin.com/in/dhimanparas20/"
 ```
+
+---
+
+## Deploy to Vercel
+
+Using `Dockerfile.vercel`:
+
+```bash
+vercel --prod
+```
+
+Set environment variables in the Vercel dashboard → Settings → Environment Variables.
 
 ---
 
@@ -204,20 +216,6 @@ uv run fastapi cloud logs --tail 50
 uv run fastapi cloud logs --since 1h
 ```
 
-### Project Linking
-
-```bash
-uv run fastapi cloud link
-uv run fastapi cloud unlink
-```
-
-### CI/CD (GitHub Actions)
-
-```bash
-uv run fastapi cloud setup-ci
-uv run fastapi cloud setup-ci --branch production
-```
-
 ### Custom Domains
 
 Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → Domains.
@@ -237,22 +235,16 @@ Managed in the [dashboard](https://dashboard.fastapicloud.com) → your app → 
 
 ## Docker
 
-### Build and run
-
 ```bash
+# Build and run
 docker build -t fastapi-cloud .
 docker run -p 8000:8000 --env-file .env fastapi-cloud
+
+# Docker Compose
+docker compose up -d
+docker compose logs -f
+docker compose down
 ```
-
-### Docker Compose
-
-```bash
-docker compose up -d      # start in background
-docker compose logs -f    # view logs
-docker compose down       # stop
-```
-
-App runs at `http://0.0.0.0:8000`. Environment variables are loaded from `.env`.
 
 ## Useful Links
 

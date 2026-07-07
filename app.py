@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -49,26 +50,18 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 TAGS_METADATA = [
     {"name": "dashboard", "description": "HTML dashboard and public endpoints"},
     {"name": "monitoring", "description": "System metrics and request stats"},
-    {"name": "protected", "description": "Endpoints requiring X-API-Key header"},
 ]
 
 app.openapi_tags = TAGS_METADATA
 
 
-# --- Routes: Public ---
+# --- Routes: Dashboard ---
 @app.get("/", response_class=HTMLResponse, tags=["dashboard"])
 @limiter.limit("30/minute")
 async def root(request: Request):
     logger.info("GET / — rendering dashboard")
-    status = get_full_status()
-    info = get_app_info()
-    ip = await get_client_ip(request)
-    geo = await get_geolocation(ip)
-    return templates.TemplateResponse(request, "index.html", {
-        "status": status,
-        "info": info,
-        "geo": geo,
-    })
+    api_key = os.getenv("API_KEY", "")
+    return templates.TemplateResponse(request, "index.html", {"api_key": api_key})
 
 
 @app.get("/health", tags=["dashboard"])
@@ -78,38 +71,36 @@ async def health(request: Request):
     return {"status": "ok"}
 
 
-# --- Routes: Monitoring ---
-@app.get("/status", tags=["monitoring"])
+# --- Routes: API (protected) ---
+@app.get("/api/status", tags=["monitoring"])
 @limiter.limit("30/minute")
-async def status(request: Request, api_key: str = Depends(require_api_key)):
-    logger.info("GET /status — returning system info")
+async def api_status(request: Request, api_key: str = Depends(require_api_key)):
+    logger.info("GET /api/status — returning system info")
     return get_full_status()
 
 
-@app.get("/info", tags=["monitoring"])
+@app.get("/api/info", tags=["monitoring"])
 @limiter.limit("30/minute")
-async def info(request: Request, api_key: str = Depends(require_api_key)):
-    logger.info("GET /info — returning app info")
+async def api_info(request: Request, api_key: str = Depends(require_api_key)):
+    logger.info("GET /api/info — returning app info")
     return get_app_info()
 
 
-@app.get("/metrics", tags=["monitoring"])
-@limiter.limit("30/minute")
-async def metrics(request: Request, api_key: str = Depends(require_api_key)):
-    logger.info("GET /metrics — returning request stats")
-    return get_request_stats()
-
-
-# --- Routes: Protected ---
-@app.get("/geo", tags=["protected"])
+@app.get("/api/geo", tags=["monitoring"])
 @limiter.limit("10/minute")
-async def geo(request: Request, api_key: str = Depends(require_api_key)):
+async def api_geo(request: Request, api_key: str = Depends(require_api_key)):
     ip = await get_client_ip(request)
-    logger.info(f"GET /geo — looking up {ip}")
+    logger.info(f"GET /api/geo — looking up {ip}")
     return await get_geolocation(ip)
 
 
+@app.get("/api/metrics", tags=["monitoring"])
+@limiter.limit("30/minute")
+async def api_metrics(request: Request, api_key: str = Depends(require_api_key)):
+    logger.info("GET /api/metrics — returning request stats")
+    return get_request_stats()
+
+
 if __name__ == "__main__":
-    import os
     port = int(os.getenv("PORT", "8000"))
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
