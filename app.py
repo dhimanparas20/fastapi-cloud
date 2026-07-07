@@ -14,9 +14,7 @@ from modules import (
     get_client_ip,
     get_full_status,
     get_geolocation,
-    get_ping_history,
     get_request_stats,
-    start_pinger,
     limiter,
     require_api_key,
 )
@@ -57,13 +55,6 @@ TAGS_METADATA = [
 app.openapi_tags = TAGS_METADATA
 
 
-# --- Lifecycle ---
-@app.on_event("startup")
-async def startup():
-    logger.info("Application starting — launching health pinger")
-    start_pinger()
-
-
 # --- Routes: Public ---
 @app.get("/", response_class=HTMLResponse, tags=["dashboard"])
 @limiter.limit("30/minute")
@@ -73,12 +64,10 @@ async def root(request: Request):
     info = get_app_info()
     ip = await get_client_ip(request)
     geo = await get_geolocation(ip)
-    pings = get_ping_history()
     return templates.TemplateResponse(request, "index.html", {
         "status": status,
         "info": info,
         "geo": geo,
-        "pings": pings,
     })
 
 
@@ -118,13 +107,6 @@ async def geo(request: Request, api_key: str = Depends(require_api_key)):
     ip = await get_client_ip(request)
     logger.info(f"GET /geo — looking up {ip}")
     return await get_geolocation(ip)
-
-
-@app.get("/pings", tags=["protected"])
-@limiter.limit("30/minute")
-async def pings(request: Request, api_key: str = Depends(require_api_key)):
-    logger.info("GET /pings — returning ping history")
-    return {"pings": get_ping_history()}
 
 
 if __name__ == "__main__":
