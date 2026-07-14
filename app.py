@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -71,6 +72,23 @@ async def health(request: Request):
     return {"status": "ok"}
 
 
+# --- Routes: Stress Test ---
+_stress_count = 0
+
+@app.get("/stresstest", tags=["dashboard"])
+@limiter.limit("10000/second")
+async def stresstest(request: Request):
+    global _stress_count
+    _stress_count += 1
+    return {
+        "status": "ok",
+        "worker_pid": os.getpid(),
+        "request_number": _stress_count,
+        "timestamp": time.time(),
+        "client_ip": request.client.host if request.client else "unknown",
+    }
+
+
 # --- Routes: API (protected) ---
 @app.get("/api/status", tags=["monitoring"])
 @limiter.limit("30/minute")
@@ -103,4 +121,5 @@ async def api_metrics(request: Request, api_key: str = Depends(require_api_key))
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+    workers = int(os.getenv("WORKERS", "8"))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, workers=workers)

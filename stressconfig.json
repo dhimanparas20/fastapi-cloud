@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:8000/stresstest",
+  "method": "GET",
+  "timeout": 1,
+  "success_status_codes": [200],
+  "start_interval": 0.1,
+  "start_burst": 100,
+  "start_threads": 40,
+  "cpu_affinity": [-1]
+}
